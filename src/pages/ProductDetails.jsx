@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { loadProducts } from '../utils/csvParser';
 import { getSwatchStyle } from '../utils/colorHelper';
@@ -12,6 +12,18 @@ const matchOpt = (a, b) => {
   if (!a || !b) return false;
   return a === b || normalizeOpt(a) === normalizeOpt(b);
 };
+
+// Uma variante casa com a seleção se, para cada chave, o valor bate
+// (ou a variante não define aquela opção — tratada como coringa).
+const matchVariant = (variant, selected, keys) =>
+  keys.every((k) => {
+    const vv = variant.sel ? variant.sel[k] : undefined;
+    if (vv === undefined) return true;
+    if (selected[k] === undefined) return true;
+    return matchOpt(vv, selected[k]);
+  });
+
+const isColorKey = (k) => k.toLowerCase().includes('cor') || k.toLowerCase().includes('color');
 
 export default function ProductDetails() {
   const { handle } = useParams();
@@ -27,7 +39,7 @@ export default function ProductDetails() {
         const data = await loadProducts();
         const found = data.find((p) => p.id === handle);
         if (found) {
-          if (found.images.length === 0) found.images = [`${import.meta.env.BASE_URL}logo.png`];
+          if (!found.images || found.images.length === 0) found.images = [`${import.meta.env.BASE_URL}logo.png`];
           setProduct(found);
           const init = {};
           Object.keys(found.options).forEach((k) => { init[k] = found.options[k][0]; });
@@ -42,28 +54,33 @@ export default function ProductDetails() {
     setActiveImage(0);
   }, [handle]);
 
+  const optionKeys = product ? Object.keys(product.options) : [];
+  const colorKey = optionKeys.find(isColorKey);
+  const selectedColor = colorKey ? selectedOptions[colorKey] : null;
+
+  // Galeria: se houver imagens por cor e uma cor selecionada, usa as dessa cor.
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+    if (product.imagesByColor && selectedColor && product.imagesByColor[selectedColor]?.length) {
+      return product.imagesByColor[selectedColor];
+    }
+    return product.images;
+  }, [product, selectedColor]);
+
+  // Ao trocar a cor, volta a galeria para a primeira imagem.
+  useEffect(() => {
+    setActiveImage(0);
+  }, [selectedColor]);
+
+  // Recalcula a variante ativa conforme a seleção.
   useEffect(() => {
     if (!product || Object.keys(selectedOptions).length === 0) return;
-    const optionKeys = Object.keys(product.options);
-    let matched = product.variants.find((v) => {
-      let ok = true;
-      if (optionKeys[0] && !matchOpt(v.option1, selectedOptions[optionKeys[0]])) ok = false;
-      if (optionKeys[1] && !matchOpt(v.option2, selectedOptions[optionKeys[1]])) ok = false;
-      if (optionKeys[2] && !matchOpt(v.option3, selectedOptions[optionKeys[2]])) ok = false;
-      return ok;
-    });
+    const keys = Object.keys(product.options);
+    let matched = product.variants.find((v) => matchVariant(v, selectedOptions, keys));
     if (!matched) {
-      matched = product.variants.find((v) => {
-        let ok = true;
-        optionKeys.forEach((key, idx) => {
-          if (!key.toLowerCase().includes('cor') && !key.toLowerCase().includes('color')) {
-            const vVal = idx === 0 ? v.option1 : idx === 1 ? v.option2 : v.option3;
-            const selVal = selectedOptions[key];
-            if (vVal && selVal && !matchOpt(vVal, selVal)) ok = false;
-          }
-        });
-        return ok;
-      });
+      // relaxa a cor
+      const noColor = keys.filter((k) => !isColorKey(k));
+      matched = product.variants.find((v) => matchVariant(v, selectedOptions, noColor));
     }
     setCurrentVariant(matched || product.variants[0]);
   }, [selectedOptions, product]);
@@ -72,37 +89,26 @@ export default function ProductDetails() {
     setSelectedOptions((prev) => {
       const next = { ...prev, [optionName]: value };
       if (!product) return next;
-      const optionKeys = Object.keys(product.options);
-      const exact = product.variants.find((v) => {
-        const vVals = [v.option1, v.option2, v.option3];
-        return optionKeys.every((key, idx) => matchOpt(vVals[idx], next[key]));
-      });
-      if (exact) return next;
+      const keys = Object.keys(product.options);
 
-      const targetColor = next['Cor'] || next['cor'] || next['Color'];
+      // Combinação exata já válida?
+      if (product.variants.some((v) => matchVariant(v, next, keys))) return next;
+
+      // Senão, acha uma variante que respeite a opção recém-clicada (e a cor, se houver)
+      const wantColor = keys.find(isColorKey) ? next[keys.find(isColorKey)] : null;
       let candidate = product.variants.find((v) => {
-        const myIdx = optionKeys.indexOf(optionName);
-        const vVal = myIdx === 0 ? v.option1 : myIdx === 1 ? v.option2 : v.option3;
-        if (!matchOpt(vVal, value)) return false;
-        if (targetColor) {
-          const colorIdx = optionKeys.findIndex((k) => k.toLowerCase().includes('cor') || k.toLowerCase().includes('color'));
-          if (colorIdx !== -1) {
-            const vColor = colorIdx === 0 ? v.option1 : colorIdx === 1 ? v.option2 : v.option3;
-            if (!matchOpt(vColor, targetColor)) return false;
-          }
+        if (!matchOpt(v.sel?.[optionName], value)) return false;
+        if (wantColor) {
+          const ck = keys.find(isColorKey);
+          if (v.sel?.[ck] && !matchOpt(v.sel[ck], wantColor)) return false;
         }
         return true;
       });
       if (!candidate) {
-        candidate = product.variants.find((v) => {
-          const myIdx = optionKeys.indexOf(optionName);
-          const vVal = myIdx === 0 ? v.option1 : myIdx === 1 ? v.option2 : v.option3;
-          return matchOpt(vVal, value);
-        });
+        candidate = product.variants.find((v) => matchOpt(v.sel?.[optionName], value));
       }
       if (candidate) {
-        const vVals = [candidate.option1, candidate.option2, candidate.option3];
-        optionKeys.forEach((key, idx) => { if (vVals[idx]) next[key] = vVals[idx]; });
+        keys.forEach((k) => { if (candidate.sel?.[k]) next[k] = candidate.sel[k]; });
       }
       return next;
     });
@@ -111,19 +117,17 @@ export default function ProductDetails() {
   const isValueAvailable = (optionName, val) => {
     if (!product) return true;
     const l = optionName.toLowerCase();
-    if (l.includes('tamanho') || l.includes('size') || l.includes('cor') || l.includes('color') || l.includes('peso')) return true;
-    const optionKeys = Object.keys(product.options);
-    const myIdx = optionKeys.indexOf(optionName);
-    if (myIdx === -1) return true;
+    // Cor, Tamanho e Peso ficam sempre clicáveis (o clique snap na combinação válida)
+    if (isColorKey(optionName) || l.includes('tamanho') || l.includes('size') || l.includes('peso') || l.includes('anzol')) return true;
+    const keys = Object.keys(product.options);
     return product.variants.some((v) => {
-      const vVals = [v.option1, v.option2, v.option3];
-      return optionKeys.every((key, idx) => {
-        if (idx === myIdx) return matchOpt(vVals[idx], val);
-        const isColor = key.toLowerCase().includes('cor') || key.toLowerCase().includes('color');
-        if (isColor) return true;
-        const sel = selectedOptions[key];
-        if (!sel) return true;
-        return matchOpt(vVals[idx], sel);
+      if (!matchOpt(v.sel?.[optionName], val)) return false;
+      return keys.every((k) => {
+        if (k === optionName) return true;
+        if (isColorKey(k)) return true;
+        const sel = selectedOptions[k];
+        if (!sel || v.sel?.[k] === undefined) return true;
+        return matchOpt(v.sel[k], sel);
       });
     });
   };
@@ -173,17 +177,14 @@ export default function ProductDetails() {
 
     if (currentVariant?.grams > 0) specs.push({ label: 'Peso Unitário', value: `${currentVariant.grams}g` });
 
-    // Material
     specs.push({ label: 'Material', value: 'Aço carbono de alto teor (alta resistência)' });
 
-    // Afiação
     if (isPremium || full.includes('quimipoint') || full.includes('quimic')) {
       specs.push({ label: 'Afiação', value: 'Química Quimipoint — ponta ultrafina de competição' });
     } else {
       specs.push({ label: 'Afiação', value: 'Ponta afiada de alta penetração' });
     }
 
-    // Tipo / formato
     if (full.includes('jig head')) {
       const angulo = full.includes('90') ? '90°' : full.includes('60') ? '60°' : null;
       specs.push({ label: 'Tipo', value: `Jig Head${angulo ? ` ${angulo}` : ''}` });
@@ -196,28 +197,23 @@ export default function ProductDetails() {
       specs.push({ label: 'Tipo', value: 'Anzol' });
     }
 
-    // Haste / olhal
     if (full.includes('olhal')) specs.push({ label: 'Fixação', value: 'Olhal' });
-    else if (full.includes('pata') || full.includes('pÃ¡ta')) specs.push({ label: 'Fixação', value: 'Pata (chata)' });
+    else if (full.includes('pata')) specs.push({ label: 'Fixação', value: 'Pata (chata)' });
 
-    // Anti-enrosco / offset
     if (full.includes('ewg')) specs.push({ label: 'Design', value: 'EWG — Extra Wide Gap (anti-enrosco)' });
     if (full.includes('offset')) specs.push({ label: 'Montagem', value: 'Offset — ideal para iscas soft montadas' });
     if (full.includes('articulad')) specs.push({ label: 'Articulação', value: 'Articulado (link de movimento)' });
     if (full.includes('mola') || full.includes('sapatinho')) specs.push({ label: 'Fixação da Isca', value: 'Sistema de mola / sapatinho' });
 
-    // Uso recomendado
-    if (isPremium) {
-      specs.push({ label: 'Indicação', value: 'Pesca esportiva de competição e alto rendimento' });
-    } else if (full.includes('jig head')) {
-      specs.push({ label: 'Indicação', value: 'Iscas soft, grubs e shads — água doce e salgada' });
-    } else {
-      specs.push({ label: 'Indicação', value: 'Iscas naturais e montagens diversas' });
-    }
+    if (isPremium) specs.push({ label: 'Indicação', value: 'Pesca esportiva de competição e alto rendimento' });
+    else if (full.includes('jig head')) specs.push({ label: 'Indicação', value: 'Iscas soft, grubs e shads — água doce e salgada' });
+    else specs.push({ label: 'Indicação', value: 'Iscas naturais e montagens diversas' });
 
     specs.push({ label: 'Disponibilidade', value: 'Em Estoque (Pronta Entrega)' });
     return specs;
   };
+
+  const safeActive = Math.min(activeImage, galleryImages.length - 1);
 
   return (
     <div className="view-fade">
@@ -234,12 +230,12 @@ export default function ProductDetails() {
         <div className="detail-grid">
           <section className="detail-gallery" aria-label="Imagens do Produto">
             <div className="gallery-main">
-              <img src={product.images[activeImage]} alt={product.title} onError={(e) => { e.target.src = `${import.meta.env.BASE_URL}logo.png`; }} />
+              <img src={galleryImages[safeActive]} alt={product.title} onError={(e) => { e.target.src = `${import.meta.env.BASE_URL}logo.png`; }} />
             </div>
-            {product.images.length > 1 && (
+            {galleryImages.length > 1 && (
               <div className="gallery-thumbs">
-                {product.images.map((img, i) => (
-                  <button key={i} className={`thumb-btn ${i === activeImage ? 'active' : ''}`} onClick={() => setActiveImage(i)} type="button" aria-label={`Ver imagem ${i + 1}`}>
+                {galleryImages.map((img, i) => (
+                  <button key={i} className={`thumb-btn ${i === safeActive ? 'active' : ''}`} onClick={() => setActiveImage(i)} type="button" aria-label={`Ver imagem ${i + 1}`}>
                     <img src={img} alt={`Miniatura ${i + 1}`} onError={(e) => { e.target.src = `${import.meta.env.BASE_URL}logo.png`; }} />
                   </button>
                 ))}
@@ -263,7 +259,7 @@ export default function ProductDetails() {
             {Object.keys(product.options).map((optionName) => {
               const values = product.options[optionName];
               if (!values || values.length === 0) return null;
-              const isColor = optionName.toLowerCase().includes('cor') || optionName.toLowerCase().includes('color');
+              const isColor = isColorKey(optionName);
               return (
                 <div key={optionName} className="info-section">
                   <h2 className="info-section-title">
@@ -271,21 +267,20 @@ export default function ProductDetails() {
                   </h2>
                   {isColor ? (
                     <div className="swatches-selector" role="radiogroup" aria-label={`Seleção de ${optionName}`}>
-                      {values.map((val) => {
-                        const available = isValueAvailable(optionName, val);
-                        return (
-                          <button
-                            key={val}
-                            className={`swatch-btn ${selectedOptions[optionName] === val ? 'active' : ''} ${!available ? 'unavailable' : ''}`}
-                            style={getSwatchStyle(val)}
-                            onClick={() => available && handleOptionSelect(optionName, val)}
-                            title={val}
-                            type="button"
-                            role="radio"
-                            aria-checked={selectedOptions[optionName] === val ? 'true' : 'false'}
-                          />
-                        );
-                      })}
+                      {values.map((val) => (
+                        <button
+                          key={val}
+                          className={`swatch-btn labeled ${selectedOptions[optionName] === val ? 'active' : ''}`}
+                          onClick={() => handleOptionSelect(optionName, val)}
+                          title={val}
+                          type="button"
+                          role="radio"
+                          aria-checked={selectedOptions[optionName] === val ? 'true' : 'false'}
+                        >
+                          <span className="swatch-dot" style={getSwatchStyle(val)} />
+                          <span className="swatch-label">{val}</span>
+                        </button>
+                      ))}
                     </div>
                   ) : (
                     <div className="vars-selector" role="radiogroup" aria-label={`Seleção de ${optionName}`}>
