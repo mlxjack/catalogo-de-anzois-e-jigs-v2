@@ -50,13 +50,9 @@ export default function ProductCard({ product }) {
         {colorVals.length > 0 && (
           <div className="product-card-previews">
             <div className="card-swatches" aria-label="Cores / acabamentos disponíveis">
-              {colorVals.slice(0, 8).map((color) => {
-                const colorImg = product.imagesByColor?.[color]?.[0];
-                const style = colorImg
-                  ? { backgroundImage: `url("${encodeURI(colorImg)}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                  : getSwatchStyle(color);
-                return <span key={color} className="card-swatch" style={style} title={color} />;
-              })}
+              {colorVals.slice(0, 8).map((color) => (
+                <span key={color} className="card-swatch" style={getSwatchStyle(color)} title={color} />
+              ))}
               {colorVals.length > 8 && (
                 <span className="card-vars-count">+{colorVals.length - 8}</span>
               )}
