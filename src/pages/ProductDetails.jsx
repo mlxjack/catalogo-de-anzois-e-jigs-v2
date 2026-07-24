@@ -267,20 +267,26 @@ export default function ProductDetails() {
                   </h2>
                   {isColor ? (
                     <div className="swatches-selector" role="radiogroup" aria-label={`Seleção de ${optionName}`}>
-                      {values.map((val) => (
-                        <button
-                          key={val}
-                          className={`swatch-btn labeled ${selectedOptions[optionName] === val ? 'active' : ''}`}
-                          onClick={() => handleOptionSelect(optionName, val)}
-                          title={val}
-                          type="button"
-                          role="radio"
-                          aria-checked={selectedOptions[optionName] === val ? 'true' : 'false'}
-                        >
-                          <span className="swatch-dot" style={getSwatchStyle(val)} />
-                          <span className="swatch-label">{val}</span>
-                        </button>
-                      ))}
+                      {values.map((val) => {
+                        const colorImg = product.imagesByColor?.[val]?.[0];
+                        const dotStyle = colorImg
+                          ? { backgroundImage: `url("${encodeURI(colorImg)}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                          : getSwatchStyle(val);
+                        return (
+                          <button
+                            key={val}
+                            className={`swatch-btn labeled ${selectedOptions[optionName] === val ? 'active' : ''}`}
+                            onClick={() => handleOptionSelect(optionName, val)}
+                            title={val}
+                            type="button"
+                            role="radio"
+                            aria-checked={selectedOptions[optionName] === val ? 'true' : 'false'}
+                          >
+                            <span className={`swatch-dot ${colorImg ? 'photo' : ''}`} style={dotStyle} />
+                            <span className="swatch-label">{val}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="vars-selector" role="radiogroup" aria-label={`Seleção de ${optionName}`}>

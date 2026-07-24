@@ -1542,27 +1542,38 @@ a {
 /* SWATCHES ROTULADOS (cor com nome) — usados nos jig heads      */
 /* ============================================================= */
 .swatches-selector { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Sobrepõe a base .swatch-btn (32x32 redondo) para virar uma "pílula" com rótulo */
 .swatch-btn.labeled {
+  width: auto;
+  height: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px 6px 6px;
+  padding: 5px 14px 5px 5px;
   border: 1.5px solid var(--border-color);
   border-radius: 999px;
   background: var(--bg-secondary);
+  box-shadow: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
-.swatch-btn.labeled:hover { border-color: var(--border-color-hover); transform: translateY(-1px); }
+.swatch-btn.labeled:hover {
+  border-color: var(--border-color-hover);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
 .swatch-btn.labeled.active {
   border-color: var(--color-brand);
   box-shadow: 0 0 0 3px rgba(var(--color-brand-rgb), 0.14);
   color: var(--color-text-primary);
+  transform: none;
 }
+/* Neutraliza o tooltip ::after da base nos swatches rotulados */
+.swatch-btn.labeled::after { content: none; display: none; }
 .swatch-dot {
   width: 22px;
   height: 22px;
@@ -1570,6 +1581,10 @@ a {
   border: 1px solid rgba(0, 0, 0, 0.15);
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
+}
+.swatch-dot.photo {
+  background-color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 .swatch-label { white-space: nowrap; }
 
