@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { loadProducts } from '../utils/csvParser';
 import { getSwatchStyle } from '../utils/colorHelper';
@@ -26,6 +26,29 @@ const matchVariant = (variant, selected, keys) =>
 const isColorKey = (k) => k.toLowerCase().includes('cor') || k.toLowerCase().includes('color');
 const isSizeKey = (k) => k.toLowerCase().includes('tamanho') || k.toLowerCase().includes('size');
 
+// Tira o sufixo de hash/UUID que o Shopify agrega ao nome do arquivo
+// (ex.: "..._9ba1daa8-2119-4064-bee9-32bae73a6c9f.png" → "...") pra sobrar
+// só a parte "legível" do nome, onde o tamanho costuma aparecer.
+const stripHashSuffix = (fname) =>
+  fname.replace(/_[0-9a-f]{6,}(-[0-9a-f]{4,}){0,4}\.[a-z0-9]+$/i, '').replace(/\.[a-z0-9]+$/i, '');
+
+// Tenta reconhecer, entre os valores de Tamanho válidos do produto, qual deles
+// aparece "isolado" (cercado por não-dígitos) no nome do arquivo — usado só como
+// fallback para fotos que o Shopify não amarrou a nenhuma variante específica
+// (ex.: as fotos "macro" extras), quando não há atribuição exata para confiar.
+const guessSizeFromFilename = (imgUrl, sizeValues) => {
+  if (!imgUrl || !sizeValues?.length) return null;
+  const fname = (imgUrl.split('/').pop() || '').split('?')[0];
+  const prefix = stripHashSuffix(fname);
+  const sorted = [...sizeValues].sort((a, b) => b.length - a.length);
+  for (const val of sorted) {
+    const esc = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[.,]/g, '[.,_]');
+    const re = new RegExp(`(^|[^0-9a-z])${esc}($|[^0-9a-z])`, 'i');
+    if (re.test(prefix)) return val;
+  }
+  return null;
+};
+
 export default function ProductDetails() {
   const { handle } = useParams();
   const [product, setProduct] = useState(null);
@@ -33,6 +56,10 @@ export default function ProductDetails() {
   const [activeImage, setActiveImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [currentVariant, setCurrentVariant] = useState(null);
+  // Quando um clique na miniatura já escolheu a foto certa "na mão", este flag
+  // pula a próxima rodada do auto-jump (abaixo) pra ele não "corrigir" de volta
+  // pra outra foto da mesma variante (ex.: a miniatura "macro" vs a "embalagem").
+  const skipNextJumpRef = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -93,6 +120,7 @@ export default function ProductDetails() {
   // Roda depois do efeito acima (mesmo ciclo de commit), então sobrepõe o reset por cor
   // com o índice exato quando a variante tiver imagem dedicada.
   useEffect(() => {
+    if (skipNextJumpRef.current) { skipNextJumpRef.current = false; return; }
     if (!currentVariant?.variantImage) return;
     const idx = galleryImages.indexOf(currentVariant.variantImage);
     if (idx !== -1) setActiveImage(idx);
@@ -125,6 +153,33 @@ export default function ProductDetails() {
       }
       return next;
     });
+  };
+
+  // Clique numa miniatura: além de trocar a foto, sincroniza a seleção (Tamanho/Cor/
+  // preço/specs) com a variante daquela foto — pra legenda e opções nunca ficarem
+  // "atrasadas" em relação à imagem exibida.
+  const handleThumbClick = (i) => {
+    setActiveImage(i);
+    if (!product) return;
+    const img = galleryImages[i];
+
+    // 1) Atribuição exata do Shopify pra essa foto (mais confiável).
+    const exact = product.variants.find((v) => v.variantImage === img);
+    if (exact && Object.keys(exact.sel || {}).length) {
+      skipNextJumpRef.current = true;
+      setSelectedOptions((prev) => ({ ...prev, ...exact.sel }));
+      return;
+    }
+
+    // 2) Sem atribuição exata (ex.: fotos "macro" extras que o Shopify não amarrou
+    // a nenhuma variante) — tenta reconhecer o Tamanho pelo nome do arquivo.
+    if (sizeKey) {
+      const guessed = guessSizeFromFilename(img, product.options[sizeKey]);
+      if (guessed) {
+        skipNextJumpRef.current = true;
+        setSelectedOptions((prev) => ({ ...prev, [sizeKey]: guessed }));
+      }
+    }
   };
 
   const isValueAvailable = (optionName, val) => {
@@ -258,7 +313,7 @@ export default function ProductDetails() {
             {galleryImages.length > 1 && (
               <div className="gallery-thumbs">
                 {galleryImages.map((img, i) => (
-                  <button key={i} className={`thumb-btn ${i === safeActive ? 'active' : ''}`} onClick={() => setActiveImage(i)} type="button" aria-label={`Ver imagem ${i + 1}`}>
+                  <button key={i} className={`thumb-btn ${i === safeActive ? 'active' : ''}`} onClick={() => handleThumbClick(i)} type="button" aria-label={`Ver imagem ${i + 1}`}>
                     <img src={img} alt={`Miniatura ${i + 1}`} onError={(e) => { e.target.src = `${import.meta.env.BASE_URL}logo.png`; }} />
                   </button>
                 ))}
