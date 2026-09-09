@@ -24,6 +24,7 @@ const matchVariant = (variant, selected, keys) =>
   });
 
 const isColorKey = (k) => k.toLowerCase().includes('cor') || k.toLowerCase().includes('color');
+const isSizeKey = (k) => k.toLowerCase().includes('tamanho') || k.toLowerCase().includes('size');
 
 export default function ProductDetails() {
   const { handle } = useParams();
@@ -57,6 +58,8 @@ export default function ProductDetails() {
   const optionKeys = product ? Object.keys(product.options) : [];
   const colorKey = optionKeys.find(isColorKey);
   const selectedColor = colorKey ? selectedOptions[colorKey] : null;
+  const sizeKey = optionKeys.find(isSizeKey);
+  const selectedSize = sizeKey ? selectedOptions[sizeKey] : null;
 
   // Galeria: se houver imagens por cor e uma cor selecionada, usa as dessa cor.
   const galleryImages = useMemo(() => {
@@ -84,6 +87,16 @@ export default function ProductDetails() {
     }
     setCurrentVariant(matched || product.variants[0]);
   }, [selectedOptions, product]);
+
+  // Quando a variante ativa muda (qualquer opção: Tamanho, Cor, etc.) e ela tem
+  // uma foto PRÓPRIA atribuída no Shopify (não um fallback), pula a galeria pra ela.
+  // Roda depois do efeito acima (mesmo ciclo de commit), então sobrepõe o reset por cor
+  // com o índice exato quando a variante tiver imagem dedicada.
+  useEffect(() => {
+    if (!currentVariant?.variantImage) return;
+    const idx = galleryImages.indexOf(currentVariant.variantImage);
+    if (idx !== -1) setActiveImage(idx);
+  }, [currentVariant, galleryImages]);
 
   const handleOptionSelect = (optionName, value) => {
     setSelectedOptions((prev) => {
@@ -230,7 +243,17 @@ export default function ProductDetails() {
         <div className="detail-grid">
           <section className="detail-gallery" aria-label="Imagens do Produto">
             <div className="gallery-main">
-              <img src={galleryImages[safeActive]} alt={product.title} onError={(e) => { e.target.src = `${import.meta.env.BASE_URL}logo.png`; }} />
+              <img
+                src={galleryImages[safeActive]}
+                alt={selectedSize ? `${product.title} — Tamanho ${selectedSize}` : product.title}
+                onError={(e) => { e.target.src = `${import.meta.env.BASE_URL}logo.png`; }}
+              />
+              {/* Legenda sobre a foto: modelo + tamanho selecionado — evita confusão em fotos
+                  "soltas no quadriculado" onde não dá pra saber a qual variação pertencem. */}
+              <div className="gallery-caption">
+                <span className="gallery-caption-title">{product.title}</span>
+                {selectedSize && <span className="gallery-caption-size">Tamanho {selectedSize}</span>}
+              </div>
             </div>
             {galleryImages.length > 1 && (
               <div className="gallery-thumbs">

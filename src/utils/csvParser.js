@@ -181,6 +181,10 @@ export const loadProducts = async () => {
               price,
               grams: parseFloat(row['Variant Grams']) || 0,
               image: row['Variant Image'] || row['Image Src'],
+              // Só a atribuição DELIBERADA (coluna "Variant Image" do Shopify), sem fallback.
+              // Usado para pular a galeria pra foto certa da variante — o fallback de `image`
+              // acima pega qualquer foto vizinha na planilha e erraria o tamanho/cor exibido.
+              variantImage: row['Variant Image'] || null,
               sel,
             });
           }

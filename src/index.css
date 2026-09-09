@@ -1592,3 +1592,58 @@ a {
   border-color: var(--oriental-gold);
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
 }
+
+/* ============================================================= */
+/* LEGENDA DA GALERIA — modelo + tamanho sobre a foto principal   */
+/* ============================================================= */
+.gallery-caption {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+.gallery-caption-title {
+  font-family: var(--font-sport);
+  font-size: 12px;
+  font-weight: 600;
+  color: #f8fafc;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.gallery-caption-size {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: #ffffff;
+  font-family: var(--font-sport);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+/* No detalhe premium, o selo de tamanho usa o dourado oriental em vez do laranja */
+.premium-detail .gallery-caption-size {
+  background: linear-gradient(135deg, var(--oriental-gold-soft), var(--oriental-gold));
+  color: #3a2a08;
+}
+
+@media (max-width: 480px) {
+  .gallery-caption { left: 8px; right: 8px; bottom: 8px; padding: 6px 10px; }
+  .gallery-caption-title { font-size: 11px; }
+}
