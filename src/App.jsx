@@ -2,8 +2,31 @@ import React from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import Catalog from './pages/Catalog';
 import ProductDetails from './pages/ProductDetails';
-import { STORE_URL, INSTAGRAM_URL, WHATSAPP_NUMBER } from './config';
+import { STORE_URL, INSTAGRAM_URL, WHATSAPP_NUMBER, PROMO_BANNER } from './config';
 import './index.css';
+
+// Banner promocional que expira sozinho em PROMO_BANNER.expiresAt — não precisa de
+// novo deploy pra sumir na hora certa; enquanto a aba fica aberta, some ao vivo.
+function PromoBanner() {
+  const [visible, setVisible] = React.useState(
+    () => PROMO_BANNER.active && Date.now() < new Date(PROMO_BANNER.expiresAt).getTime(),
+  );
+
+  React.useEffect(() => {
+    if (!visible) return undefined;
+    const msLeft = new Date(PROMO_BANNER.expiresAt).getTime() - Date.now();
+    if (msLeft <= 0) { setVisible(false); return undefined; }
+    const timer = setTimeout(() => setVisible(false), msLeft);
+    return () => clearTimeout(timer);
+  }, [visible]);
+
+  if (!visible) return null;
+  return (
+    <a href={PROMO_BANNER.link} target="_blank" rel="noopener noreferrer" className="promo-banner" aria-label={PROMO_BANNER.alt}>
+      <img src={PROMO_BANNER.image} alt={PROMO_BANNER.alt} />
+    </a>
+  );
+}
 
 function App() {
   return (
@@ -21,6 +44,8 @@ function App() {
             </nav>
           </div>
         </header>
+
+        <PromoBanner />
 
         <main className="app-container">
           <Routes>

@@ -1647,3 +1647,25 @@ a {
   .gallery-caption { left: 8px; right: 8px; bottom: 8px; padding: 6px 10px; }
   .gallery-caption-title { font-size: 11px; }
 }
+
+/* ============================================================= */
+/* BANNER PROMOCIONAL TEMPORÁRIO (Dia do Cliente etc.)            */
+/* Expira sozinho via PROMO_BANNER.expiresAt em config.js.        */
+/* ============================================================= */
+.promo-banner {
+  display: block;
+  width: 100%;
+  line-height: 0;
+  background: #0f2340; /* aproxima o fundo escuro da arte, evita "sobra" branca nas laterais */
+  border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+}
+.promo-banner img {
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: contain; /* nunca corta o banner (cover cortava o texto de topo/rodapé) */
+}
+@media (max-width: 640px) {
+  .promo-banner img { height: 150px; }
+}
