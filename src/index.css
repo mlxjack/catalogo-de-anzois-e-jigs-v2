@@ -1112,6 +1112,18 @@ a {
   text-align: center;
   font-weight: 600;
 }
+.btn-selecao {
+  background-color: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #ffffff;
+}
+.btn-selecao:hover:not(:disabled) {
+  background-color: var(--color-brand-hover);
+}
+.btn-selecao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Specs Accordion/Grid */
 .specs-table {
