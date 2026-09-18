@@ -1080,6 +1080,39 @@ a {
   gap: 14px;
 }
 
+.selecao-add-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.selecao-add-row .btn {
+  flex: 1;
+}
+.selecao-qty-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 10px;
+  flex: 0 0 auto;
+}
+.selecao-qty-stepper button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+.selecao-qty-stepper span {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
 /* Specs Accordion/Grid */
 .specs-table {
   width: 100%;
