@@ -399,20 +399,6 @@ export default function ProductDetails() {
               );
             })}
 
-            <div className="info-section">
-              <h2 className="info-section-title">Especificações Técnicas</h2>
-              <table className="specs-table">
-                <tbody>
-                  {buildSpecs().map((s, i) => (
-                    <tr key={i}>
-                      <td className="specs-label">{s.label}</td>
-                      <td className="specs-val">{s.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
             <div className="detail-actions">
               <button className="btn btn-primary btn-whatsapp" onClick={() => window.open(getWhatsAppLink(), '_blank', 'noopener noreferrer')} type="button">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
@@ -439,6 +425,20 @@ export default function ProductDetails() {
                 <a href={STORE_URL} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Comprar no Site</a>
                 <Link to="/" className="btn btn-secondary">Voltar ao Catálogo</Link>
               </div>
+            </div>
+
+            <div className="info-section">
+              <h2 className="info-section-title">Especificações Técnicas</h2>
+              <table className="specs-table">
+                <tbody>
+                  {buildSpecs().map((s, i) => (
+                    <tr key={i}>
+                      <td className="specs-label">{s.label}</td>
+                      <td className="specs-val">{s.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {product.description && (
