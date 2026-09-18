@@ -56,6 +56,7 @@ export default function ProductDetails() {
   const [activeImage, setActiveImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [currentVariant, setCurrentVariant] = useState(null);
+  const [selecaoQty, setSelecaoQty] = useState(1);
   // Quando um clique na miniatura já escolheu a foto certa "na mão", este flag
   // pula a próxima rodada do auto-jump (abaixo) pra ele não "corrigir" de volta
   // pra outra foto da mesma variante (ex.: a miniatura "macro" vs a "embalagem").
@@ -230,6 +231,20 @@ export default function ProductDetails() {
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
   };
 
+  const handleAddToSelecao = () => {
+    if (!window.MinhaSelecao || !currentVariant) return;
+    const variant = Object.entries(selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ');
+    window.MinhaSelecao.addItem({
+      catalog: 'anzois',
+      productId: product.id,
+      name: product.title,
+      sku: currentVariant.sku || null,
+      variant,
+      qty: selecaoQty,
+    });
+    setSelecaoQty(1);
+  };
+
   const buildSpecs = () => {
     const specs = [];
     const full = `${(product.title || '').toLowerCase()} ${(product.description || '').toLowerCase()} ${product.tags.join(' ').toLowerCase()}`;
@@ -398,13 +413,6 @@ export default function ProductDetails() {
               </table>
             </div>
 
-            {product.description && (
-              <div className="info-section">
-                <h2 className="info-section-title">Descrição</h2>
-                <div className="info-desc" dangerouslySetInnerHTML={{ __html: product.description }} />
-              </div>
-            )}
-
             <div className="detail-actions">
               <button className="btn btn-primary btn-whatsapp" onClick={() => window.open(getWhatsAppLink(), '_blank', 'noopener noreferrer')} type="button">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
@@ -412,11 +420,33 @@ export default function ProductDetails() {
                 </svg>
                 Solicitar via WhatsApp
               </button>
+              <div className="selecao-add-row">
+                <div className="selecao-qty-stepper">
+                  <button type="button" onClick={() => setSelecaoQty((q) => Math.max(1, q - 1))} aria-label="Diminuir quantidade">−</button>
+                  <span>{selecaoQty}</span>
+                  <button type="button" onClick={() => setSelecaoQty((q) => q + 1)} aria-label="Aumentar quantidade">+</button>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={!currentVariant}
+                  onClick={handleAddToSelecao}
+                >
+                  Adicionar à Minha Seleção
+                </button>
+              </div>
               <div className="action-row">
                 <a href={STORE_URL} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Comprar no Site</a>
                 <Link to="/" className="btn btn-secondary">Voltar ao Catálogo</Link>
               </div>
             </div>
+
+            {product.description && (
+              <div className="info-section">
+                <h2 className="info-section-title">Descrição</h2>
+                <div className="info-desc" dangerouslySetInnerHTML={{ __html: product.description }} />
+              </div>
+            )}
           </section>
         </div>
       </main>
