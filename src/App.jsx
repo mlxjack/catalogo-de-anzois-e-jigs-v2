@@ -40,6 +40,7 @@ function App() {
 
             <nav className="nav-menu" aria-label="Navegação Principal">
               <Link to="/" className="nav-item active">Produtos</Link>
+              <Link to="/?pesqueiro=1" className="nav-item nav-item-pesqueiro">Pesqueiro</Link>
               <a href={STORE_URL} target="_blank" rel="noopener noreferrer" className="nav-item btn-nav">Site Oficial</a>
             </nav>
           </div>

@@ -355,7 +355,7 @@ a {
 }
 .tools {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 300px auto 1fr;
   gap: 20px;
   align-items: center;
 }
@@ -1713,4 +1713,29 @@ a {
 }
 @media (max-width: 640px) {
   .promo-banner img { height: 150px; }
+}
+
+/* Filtro Pesqueiro */
+.pesqueiro-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-brand);
+  background-color: #ffffff;
+  color: var(--color-brand);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast, .2s);
+}
+.pesqueiro-toggle:hover { background-color: #fff7ed; }
+.pesqueiro-toggle.active { background-color: var(--color-brand); color: #ffffff; }
+.nav-item-pesqueiro { color: var(--color-brand); }
+@media (max-width: 992px) {
+  .pesqueiro-toggle { width: 100%; }
 }

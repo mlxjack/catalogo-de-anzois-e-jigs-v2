@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { isPesqueiro } from '../utils/pesqueiro';
 import { loadProducts, CATEGORIES, SECTION_ORDER } from '../utils/csvParser';
 import ProductCard from '../components/ProductCard';
 import { STORE_URL } from '../config';
@@ -26,6 +27,10 @@ export default function Catalog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  // Filtro "Pesqueiro" vive na URL (#/?pesqueiro=1) para poder ser compartilhado
+  const [searchParams, setSearchParams] = useSearchParams();
+  const onlyPesqueiro = searchParams.get('pesqueiro') === '1';
+  const togglePesqueiro = () => setSearchParams(onlyPesqueiro ? {} : { pesqueiro: '1' }, { replace: true });
 
   useEffect(() => {
     (async () => {
@@ -53,7 +58,7 @@ export default function Catalog() {
       normalize(p.category).includes(term) ||
       p.tags.some((t) => normalize(t).includes(term));
     const matchesCat = filterCategory === 'All' || p.category === filterCategory;
-    return matchesSearch && matchesCat;
+    return matchesSearch && matchesCat && (!onlyPesqueiro || isPesqueiro(p));
   });
 
   const featured = products.find((p) => p.premium && p.images.length > 0) || products[0];
@@ -133,6 +138,19 @@ export default function Catalog() {
               />
             </div>
 
+            <button
+              className={`pesqueiro-toggle ${onlyPesqueiro ? 'active' : ''}`}
+              onClick={togglePesqueiro}
+              type="button"
+              aria-pressed={onlyPesqueiro}
+              title="Mostrar só os produtos para pesqueiro"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 21L17 5" /><path d="M17 5c3 0 4 2 4 5" /><circle cx="21" cy="13" r="1.6" />
+              </svg>
+              <span>Pesqueiro</span>
+            </button>
+
             <div className="menu-dropdown-wrapper">
               <button
                 className="hamburger-menu-btn"
@@ -176,7 +194,7 @@ export default function Catalog() {
             <p>Selecione um produto para ver tamanhos, pesos, acabamentos e especificações técnicas completas.</p>
           </div>
           <div className="summary-count">
-            {filtered.length} produto{filtered.length === 1 ? '' : 's'}
+            {filtered.length} produto{filtered.length === 1 ? '' : 's'}{onlyPesqueiro ? ' para pesqueiro' : ''}
           </div>
         </div>
 
