@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { isPesqueiro } from '../utils/pesqueiro';
+import { Link } from 'react-router-dom';
 import { loadProducts, CATEGORIES, SECTION_ORDER } from '../utils/csvParser';
 import ProductCard from '../components/ProductCard';
 import { STORE_URL } from '../config';
@@ -24,13 +23,8 @@ const SECTION_META = {
 export default function Catalog() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  // Filtro "Pesqueiro" vive na URL (#/?pesqueiro=1) para poder ser compartilhado
-  const [searchParams, setSearchParams] = useSearchParams();
-  const onlyPesqueiro = searchParams.get('pesqueiro') === '1';
-  const togglePesqueiro = () => setSearchParams(onlyPesqueiro ? {} : { pesqueiro: '1' }, { replace: true });
 
   useEffect(() => {
     (async () => {
@@ -50,19 +44,13 @@ export default function Catalog() {
     return () => document.removeEventListener('click', close);
   }, []);
 
-  const term = normalize(searchTerm);
   const filtered = products.filter((p) => {
-    const matchesSearch =
-      !term ||
-      normalize(p.title).includes(term) ||
-      normalize(p.category).includes(term) ||
-      p.tags.some((t) => normalize(t).includes(term));
     const matchesCat = filterCategory === 'All' || p.category === filterCategory;
-    return matchesSearch && matchesCat && (!onlyPesqueiro || isPesqueiro(p));
+    return matchesCat;
   });
 
   const featured = products.find((p) => p.premium && p.images.length > 0) || products[0];
-  const sectioned = filterCategory === 'All' && !term;
+  const sectioned = filterCategory === 'All';
 
   const grouped = SECTION_ORDER.map((sec) => ({
     section: sec,
@@ -123,34 +111,6 @@ export default function Catalog() {
         {/* Busca + filtros */}
         <section className="panel" aria-label="Painel de Busca e Filtros">
           <div className="tools">
-            <div className="search-wrapper">
-              <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="search"
-                className="search-input"
-                placeholder="Buscar anzol, jig head, EWG, Kitsune..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                autoComplete="off"
-              />
-            </div>
-
-            <button
-              className={`pesqueiro-toggle ${onlyPesqueiro ? 'active' : ''}`}
-              onClick={togglePesqueiro}
-              type="button"
-              aria-pressed={onlyPesqueiro}
-              title="Mostrar só os produtos para pesqueiro"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 21L17 5" /><path d="M17 5c3 0 4 2 4 5" /><circle cx="21" cy="13" r="1.6" />
-              </svg>
-              <span>Pesqueiro</span>
-            </button>
-
             <div className="menu-dropdown-wrapper">
               <button
                 className="hamburger-menu-btn"
@@ -194,7 +154,7 @@ export default function Catalog() {
             <p>Selecione um produto para ver tamanhos, pesos, acabamentos e especificações técnicas completas.</p>
           </div>
           <div className="summary-count">
-            {filtered.length} produto{filtered.length === 1 ? '' : 's'}{onlyPesqueiro ? ' para pesqueiro' : ''}
+            {filtered.length} produto{filtered.length === 1 ? '' : 's'}
           </div>
         </div>
 
